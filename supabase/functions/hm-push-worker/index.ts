@@ -2,8 +2,13 @@ import { SignJWT, importPKCS8 } from 'npm:jose@6';
 import webpush from 'npm:web-push@3.6.7';
 import { admin, json, check } from '../_shared/server.ts';
 
-type Event = { event_id: string; batch_id: string | null; notification_type: string; attempts: number };
+type Event = { event_id: string; batch_id: string | null; notification_type: string; daily_date: string | null; attempts: number };
 const configured = (keys: string[]) => keys.every((key) => Deno.env.get(key));
+function localDateTime(timezone: string) {
+	const parts = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date());
+	const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+	return { date: `${values.year}-${values.month}-${values.day}`, time: `${values.hour === '24' ? '00' : values.hour}:${values.minute}` };
+}
 
 async function sendApns(endpoint: Record<string, string>, payload: Record<string, unknown>, eventId: string) {
 	const key = await importPKCS8(Deno.env.get('APNS_PRIVATE_KEY')!.replace(/\\n/g, '\n'), 'ES256');
@@ -38,13 +43,32 @@ Deno.serve(async (req) => {
 					if (!quotes?.length) { await admin.from('hm_notification_outbox').update({ status: 'cancelled' }).eq('event_id', event.event_id); continue; }
 					payload = { title: 'Honzíkova moudra', body: quotes.length === 1 ? 'Ve sbírce je nové moudro.' : `Ve sbírce je ${quotes.length} nových mouder.`, path: quotes.length === 1 ? `/moudra/${quotes[0].id}` : `/davky/${event.batch_id}` };
 				}
-				const { data: prefs, error: prefError } = await admin.from('hm_notification_preferences').select(`installation_id,${preference}`).eq(preference, true).eq('permission', 'granted'); check(prefError);
+				if (event.notification_type === 'daily' && event.daily_date && event.daily_date !== localDateTime('Europe/Prague').date) {
+					await admin.from('hm_notification_outbox').update({ status: 'cancelled' }).eq('event_id', event.event_id);
+					continue;
+				}
+				const { data: prefs, error: prefError } = await admin.from('hm_notification_preferences').select(`installation_id,${preference}${event.notification_type === 'daily' ? ',daily_time' : ''}`).eq(preference, true).eq('permission', 'granted'); check(prefError);
 				const ids = (prefs || []).map((pref) => pref.installation_id);
 				const { data: endpoints, error: endpointError } = ids.length ? await admin.from('hm_push_endpoints').select('*').in('installation_id', ids) : { data: [], error: null }; check(endpointError);
 				if (ids.length > 0 && !endpoints?.length) retry = true;
+				if (event.notification_type === 'daily' && ids.length) {
+					const { data: installations, error: installationError } = await admin.from('hm_installations').select('id,timezone').in('id', ids); check(installationError);
+					const timezones = new Map((installations || []).map((installation) => [installation.id, installation.timezone]));
+					for (const pref of prefs || []) {
+						const endpoint = (endpoints || []).find((item) => item.installation_id === pref.installation_id);
+						const local = localDateTime(timezones.get(pref.installation_id) || 'Europe/Prague');
+						if (!endpoint || local.date !== event.daily_date || local.time < String(pref.daily_time).slice(0, 5)) retry = true;
+					}
+				}
 				for (const endpoint of endpoints || []) {
 					const { data: done, error: deliveryError } = await admin.from('hm_notification_deliveries').select('status,attempts').eq('event_id', event.event_id).eq('endpoint_id', endpoint.id).maybeSingle(); check(deliveryError);
 					if (done?.status === 'sent' || done?.status === 'invalid') continue;
+					if (event.notification_type === 'daily') {
+						const pref = (prefs || []).find((item) => item.installation_id === endpoint.installation_id);
+						const { data: installation } = await admin.from('hm_installations').select('timezone').eq('id', endpoint.installation_id).maybeSingle();
+						const local = localDateTime(installation?.timezone || 'Europe/Prague');
+						if (!pref || local.date !== event.daily_date || local.time < String(pref.daily_time).slice(0, 5)) continue;
+					}
 					try {
 						let response: { ok: boolean; status: number; headers: Headers };
 						if (endpoint.provider === 'webpush') {

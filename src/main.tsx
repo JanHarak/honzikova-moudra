@@ -1126,7 +1126,7 @@ function Settings({
       else {
         if (enabled && !webPushAvailable()) throw Error("WEB_PUSH_UNAVAILABLE");
         if (enabled) await ensureWebPush();
-        await setWebDaily(enabled);
+        await setWebDaily(enabled, t);
       }
       setDaily(enabled);
       setTime(t);
@@ -1200,7 +1200,7 @@ function Settings({
         <input
           type="time"
           value={time}
-          disabled={!native}
+          disabled={demo || (!native && !webPushAvailable())}
           onChange={(e) => void updateDaily(daily, e.target.value)}
         />
       </label>

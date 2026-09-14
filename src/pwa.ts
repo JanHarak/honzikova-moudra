@@ -97,10 +97,10 @@ export async function ensureWebPush() {
   );
 }
 
-export async function setWebDaily(enabled: boolean) {
+export async function setWebDaily(enabled: boolean, time: string) {
   const installation = await webInstallation();
   const { error } = await db!.functions.invoke("hm-installation", {
-    body: { action: "daily", ...installation, enabled },
+    body: { action: "daily", ...installation, enabled, time },
   });
   if (error) throw error;
 }
