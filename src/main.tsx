@@ -754,7 +754,7 @@ function Auth({
     const redirect = native
       ? "honzikovamoudra://auth/callback"
       : new URL(
-          "/auth/callback",
+          "/#/auth/callback",
           import.meta.env.VITE_SITE_URL || location.origin,
         ).href;
     try {
@@ -797,13 +797,13 @@ function Auth({
     if (!db) return;
     setBusy(true);
     setMessage("");
-    // Web: full redirect to Google, back to /auth/callback where supabase-js (PKCE,
-    // detectSessionInUrl) exchanges the code. Native still needs @capacitor/browser to
+    // Web: full redirect to Google, back to #/auth/callback where the app exchanges
+    // the PKCE code. Native still needs @capacitor/browser to
     // avoid Google's embedded-webview block; see docs/decisions.md.
     const redirect = native
       ? "honzikovamoudra://auth/callback"
       : new URL(
-          "/auth/callback",
+          "/#/auth/callback",
           import.meta.env.VITE_SITE_URL || location.origin,
         ).href;
     const { error } = await db.auth.signInWithOAuth({

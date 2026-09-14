@@ -673,6 +673,20 @@ input[type="radio"] {
   .demo-banner {
     font-size: 10px;
   }
+  .install-banner__content {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    padding: 12px 16px;
+  }
+  .install-banner__content p {
+    overflow-wrap: anywhere;
+  }
+  .install-banner__actions {
+    position: static;
+    justify-content: flex-end;
+    margin-left: 0;
+  }
   .home {
     padding-top: 28px;
     overflow: hidden;
@@ -839,7 +853,7 @@ input[type="radio"] {
     font-size: 25px;
   }
   .quote-text {
-    font-size: 34px;
+    font-size: clamp(12px, calc(140rem / var(--quote-length)), 32px);
   }
   .carousel {
     padding: 0 28px;
