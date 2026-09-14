@@ -643,8 +643,8 @@ input[type="radio"] {
     padding: 0 16px calc(172px + env(safe-area-inset-bottom));
   }
   .header-inner {
-    padding: 16px;
-    min-height: 80px;
+    padding: 8px 16px;
+    min-height: 0;
     gap: 8px;
   }
   .brand {
@@ -653,8 +653,8 @@ input[type="radio"] {
     letter-spacing: -0.5px;
   }
   .brand .owl {
-    width: 38px;
-    height: 42px;
+    width: 32px;
+    height: 36px;
   }
   .header-actions {
     gap: 8px;
@@ -846,7 +846,7 @@ input[type="radio"] {
     gap: 5px;
   }
   .header-inner {
-    padding: 12px;
+    padding: 8px 12px;
   }
   .home h1 {
     font-size: 25px;
