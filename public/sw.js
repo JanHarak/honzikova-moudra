@@ -1,4 +1,4 @@
-const SHELL = "hm-shell-v1";
+const SHELL = "hm-shell-v2";
 const PUBLIC = "hm-public-v1";
 const SHELL_FILES = [
   "/",
