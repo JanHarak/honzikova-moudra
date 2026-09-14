@@ -1,4 +1,10 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useState,
+  type CSSProperties,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { createRoot } from "react-dom/client";
 import {
   BrowserRouter,
@@ -23,12 +29,13 @@ import {
   LogOut,
   Monitor,
   Share2,
+  Pencil,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
+import useEmblaCarousel from "embla-carousel-react";
 import { db, demo, rpc, loadPublic, ownSubmissions, errorMessage } from "./api";
 import {
   type Quote,
-  type Daily,
   type Submission,
   statusLabel,
   validateText,
@@ -46,6 +53,38 @@ import "./style.css";
 function Owl({ size = 48 }: { size?: number }) {
   return (
     <img src="/owl.svg" alt="" width={size} height={size} className="owl" />
+  );
+}
+function userInitials(email: string | undefined) {
+  return (
+    email?.split("@")[0].replace(/[^a-zA-ZÀ-ž]/g, "").slice(0, 2) || "U"
+  ).toUpperCase();
+}
+function AccountAvatar({ session }: { session: Session | null }) {
+  const [imageError, setImageError] = useState(false);
+  const avatarValue =
+    session?.user.user_metadata?.avatar_url ?? session?.user.user_metadata?.picture;
+  const avatarUrl = typeof avatarValue === "string" ? avatarValue : "";
+  if (!session)
+    return (
+      <span className="account-avatar" aria-hidden="true">
+        <UserRound size={20} />
+      </span>
+    );
+  if (avatarUrl && !imageError)
+    return (
+      <img
+        className="account-avatar"
+        src={avatarUrl}
+        alt=""
+        aria-hidden="true"
+        onError={() => setImageError(true)}
+      />
+    );
+  return (
+    <span className="account-avatar" aria-hidden="true">
+      {userInitials(session.user.email)}
+    </span>
   );
 }
 // Brand glyphs are inlined because this lucide version ships no brand icons.
@@ -78,10 +117,22 @@ function App() {
     () => localStorage.getItem("hm-theme") || "system",
   );
   const navigate = useNavigate();
-  const cycleTheme = () =>
-    setTheme((t) =>
-      t === "system" ? "light" : t === "light" ? "dark" : "system",
-    );
+  const headerTheme =
+    theme === "system"
+      ? matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light"
+      : theme;
+  const toggleTheme = () =>
+    setTheme((current) => {
+      const activeTheme =
+        current === "system"
+          ? matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light"
+          : current;
+      return activeTheme === "dark" ? "light" : "dark";
+    });
   useEffect(() => {
     const media = matchMedia("(prefers-color-scheme: dark)");
     const apply = () => {
@@ -133,29 +184,21 @@ function App() {
             <button
               type="button"
               className="icon-button"
-              onClick={cycleTheme}
-              aria-label={`Přepnout vzhled (nyní ${
-                theme === "dark"
-                  ? "tmavý"
-                  : theme === "light"
-                    ? "světlý"
-                    : "podle systému"
-              })`}
+              onClick={toggleTheme}
+              aria-label={`Přepnout na ${headerTheme === "dark" ? "světlý" : "tmavý"} režim`}
             >
-              {theme === "dark" ? (
+              {headerTheme === "dark" ? (
                 <Moon size={21} />
-              ) : theme === "light" ? (
-                <Sun size={21} />
               ) : (
-                <Monitor size={21} />
+                <Sun size={21} />
               )}
             </button>
             <Link
               className="account-button"
               to={session ? "/ucet" : "/prihlaseni"}
+              aria-label={session ? "Můj účet" : "Přihlásit se"}
             >
-              <UserRound size={20} />
-              <span>{session ? "Můj účet" : "Přihlásit se"}</span>
+              <AccountAvatar session={session} />
             </Link>
             <Link className="primary header-add" to="/pridat">
               Přidat moudro
@@ -283,17 +326,21 @@ function Panel({ title, children }: { title: string; children: ReactNode }) {
 }
 function QuoteCard({
   quote,
-  daily = false,
+  initial = false,
   side = false,
 }: {
   quote: Quote;
-  daily?: boolean;
+  initial?: boolean;
   side?: boolean;
 }) {
   return (
     <article className={`quote-card ${side ? "side-card" : ""}`}>
       <span className="eyebrow">
-        {daily ? "Moudro dne" : side ? "" : "Honzíkovo moudro"}
+        {initial
+          ? "Honzíkovo moudro pro dnešní den"
+          : side
+            ? ""
+            : "Honzíkovo moudro"}
       </span>
       {quote.image_path && (
         <img
@@ -305,22 +352,38 @@ function QuoteCard({
       <Link
         tabIndex={side ? -1 : 0}
         to={`/moudra/${quote.id}`}
-        className={`quote-text ${quote.text.length > 100 ? "long" : ""}`}
+        className={`quote-text ${
+          quote.text.length > 360
+            ? "extra-long"
+            : quote.text.length > 240
+              ? "very-long"
+              : quote.text.length > 150
+                ? "long"
+                : quote.text.length > 100
+                  ? "medium"
+                  : ""
+        }`}
+                  style={{ "--quote-length": quote.text.length } as CSSProperties}
       >
         „{quote.text}“
       </Link>
-      <Owl size={side ? 56 : 76} />
+      <img className="quote-logo" src="/hm_logo.png" alt="HM" />
     </article>
   );
 }
 function Home({ dailyOnly = false }: { dailyOnly?: boolean }) {
   const [quotes, setQuotes] = useState<Quote[]>([]),
-    [daily, setDaily] = useState<Daily[]>([]),
     [index, setIndex] = useState(0),
-    [dir, setDir] = useState(1),
+    [initialQuoteId, setInitialQuoteId] = useState<string>(),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(true),
     [offline, setOffline] = useState(false);
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    loop: true,
+    align: "center",
+    skipSnaps: false,
+    duration: 35,
+  });
   async function refresh() {
     setLoading(true);
     setError("");
@@ -332,14 +395,17 @@ function Home({ dailyOnly = false }: { dailyOnly?: boolean }) {
           a.id === today?.quote_id ? -1 : b.id === today?.quote_id ? 1 : 0,
         ),
       );
-      setDaily(data.daily);
       setOffline(data.offline);
       // Start on a random quote every page load (per product owner).
-      setIndex(
-        data.quotes.length
-          ? Math.floor(Math.random() * data.quotes.length)
-          : 0,
-      );
+      const initialIndex = data.quotes.length
+        ? Math.floor(Math.random() * data.quotes.length)
+        : 0;
+      setIndex(initialIndex);
+      setInitialQuoteId(data.quotes[initialIndex]?.id);
+      if (emblaApi) {
+        emblaApi.reInit();
+        emblaApi.scrollTo(initialIndex, true);
+      }
       await syncWidgetPlan(data.daily).catch(() => {});
     } catch (e) {
       setError(errorMessage(e));
@@ -352,16 +418,26 @@ function Home({ dailyOnly = false }: { dailyOnly?: boolean }) {
     const online = () => void refresh();
     window.addEventListener("online", online);
     return () => window.removeEventListener("online", online);
-  }, []);
+  }, [emblaApi]);
+  useEffect(() => {
+    if (!emblaApi) return;
+    const onSelect = () => {
+      setIndex(emblaApi.selectedScrollSnap());
+    };
+    emblaApi.on("select", onSelect);
+    onSelect();
+    return () => {
+      emblaApi.off("select", onSelect);
+    };
+  }, [emblaApi]);
   const move = (n: number) => {
-    setDir(n);
-    setIndex((i) => (i + n + quotes.length) % quotes.length);
+    if (n > 0) emblaApi?.scrollNext();
+    else emblaApi?.scrollPrev();
   };
   const current = quotes[index];
-  let start: { x: number; y: number } | null = null;
   return (
     <section className="home">
-      <h1>Dnešní dávka moudrosti</h1>
+      <h1>Dnešní dávka Honzíkovi moudrosti</h1>
       <p className="subtitle">Krátká moudra pro delší úsměvy.</p>
       {offline && (
         <Message>Jsi offline. Zobrazujeme uložený veřejný obsah.</Message>
@@ -393,43 +469,23 @@ function Home({ dailyOnly = false }: { dailyOnly?: boolean }) {
                 move(-1);
               }
             }}
-            onTouchStart={(e) => {
-              start = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-            }}
-            onTouchEnd={(e) => {
-              if (start) {
-                const x = e.changedTouches[0].clientX - start.x,
-                  y = e.changedTouches[0].clientY - start.y;
-                if (Math.abs(x) > 60 && Math.abs(x) > Math.abs(y) * 1.4)
-                  move(x < 0 ? 1 : -1);
-                start = null;
-              }
-            }}
           >
-            {quotes.length > 1 && (
-              <div className="previous" aria-hidden="true">
-                <QuoteCard
-                  quote={quotes[(index + quotes.length - 1) % quotes.length]}
-                  side
-                />
+            <div className="carousel-viewport" ref={emblaRef}>
+              <div className="carousel-track">
+                {quotes.map((quote, quoteIndex) => (
+                  <div
+                    className={`carousel-slide ${quoteIndex === index ? "active" : ""}`}
+                    key={quote.id}
+                  >
+                    <QuoteCard
+                      quote={quote}
+                      initial={quote.id === initialQuoteId}
+                      side={quoteIndex !== index}
+                    />
+                  </div>
+                ))}
               </div>
-            )}
-            <div
-              className={`current ${dir > 0 ? "from-right" : "from-left"}`}
-              key={index}
-            >
-              <QuoteCard
-                quote={current}
-                daily={daily.some(
-                  (d) => d.date === pragueDate() && d.quote_id === current.id,
-                )}
-              />
             </div>
-            {quotes.length > 1 && (
-              <div className="next" aria-hidden="true">
-                <QuoteCard quote={quotes[(index + 1) % quotes.length]} side />
-              </div>
-            )}
             {quotes.length > 1 && (
               <>
                 <button
@@ -553,7 +609,7 @@ function Auth({
   const target =
     new URLSearchParams(loc.search).get("next") === "/pridat"
       ? "/pridat"
-      : "/ucet";
+      : "/";
   useEffect(() => {
     if (session && mode !== "password") navigate(target, { replace: true });
   }, [session, mode, target, navigate]);
@@ -577,7 +633,10 @@ function Auth({
           ? await db.auth.signUp({
               email,
               password,
-              options: { emailRedirectTo: redirect + "?next=/pridat" },
+              options: {
+                emailRedirectTo:
+                  redirect + (target === "/pridat" ? "?next=/pridat" : ""),
+              },
             })
           : mode === "reset"
             ? await db.auth.resetPasswordForEmail(email, {
@@ -739,9 +798,9 @@ function Submit({
     }
   }
   return (
-    <Panel title="Máš vlastní moudro?">
+    <Panel title="Máš Honzíkovo moudro?">
       <p className="muted">
-        Pošli ho do sbírky. Před zveřejněním ho zkontroluje administrátor.
+        Pošli ho do sbírky. Před zveřejněním ho Honzík zkontroluje.
       </p>
       {!ready ? (
         <Message>Ověřuji přihlášení…</Message>
@@ -753,7 +812,7 @@ function Submit({
       ) : null}
       <form onSubmit={send}>
         <label>
-          Tvoje moudro
+          Moudro
           <textarea
             rows={6}
             value={text}
@@ -803,6 +862,9 @@ function Account({
         <>
           <p>{session.user.email}</p>
           <div className="flex gap-4 flex-wrap my-6">
+            <Link className="secondary" to="/nastaveni">
+              <SettingsIcon size={18} /> Nastavení
+            </Link>
             {admin && (
               <Link className="primary" to="/admin">
                 Administrace
@@ -1068,8 +1130,13 @@ function Admin() {
             {q.duplicate ? "Možná duplicita · " : ""}
             {statusLabel[q.status]} · verze {q.version}
           </small>
-          <button className="secondary mt-3" onClick={() => setEdit(q)}>
-            Upravit
+          <button
+            className="secondary mt-3"
+            onClick={() => setEdit(q)}
+            aria-label="Upravit moudro"
+            title="Upravit moudro"
+          >
+            <Pencil size={18} />
           </button>
         </article>
       ))}

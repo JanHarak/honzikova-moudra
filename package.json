@@ -20,6 +20,7 @@
     "@capacitor/preferences": "^8.0.1",
     "@capacitor/push-notifications": "^8.1.2",
     "@supabase/supabase-js": "^2.116.0",
+    "embla-carousel-react": "^8.6.0",
     "lucide-react": "^1.45.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
