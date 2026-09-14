@@ -463,10 +463,9 @@ main {
   left: 0;
   right: 0;
   bottom: 0;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
   width: 100%;
   padding: 12px 24px;
   background: var(--surface);
@@ -480,19 +479,22 @@ main {
   font-weight: 600;
   font-size: 15px;
 }
+.footer-side.right {
+  justify-self: end;
+}
 .footer-side:hover {
   color: var(--link);
 }
 .footer-add {
   display: inline-grid;
   place-items: center;
-  flex: none;
   width: 32px;
   height: 32px;
   border-radius: 50%;
   background: transparent;
   color: var(--primary);
   border: 2px solid var(--primary);
+  justify-self: center;
 }
 .footer-add:hover {
   background: color-mix(in srgb, var(--primary) 8%, transparent);
