@@ -48,6 +48,21 @@ function Owl({ size = 48 }: { size?: number }) {
     <img src="/owl.svg" alt="" width={size} height={size} className="owl" />
   );
 }
+// Brand glyphs are inlined because this lucide version ships no brand icons.
+function FacebookIcon({ size = 22 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" aria-hidden="true">
+      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+    </svg>
+  );
+}
+function LinkedinIcon({ size = 22 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" aria-hidden="true">
+      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.225 0z" />
+    </svg>
+  );
+}
 function Message({ children }: { children: ReactNode }) {
   return (
     <p className="notice" role="status">
@@ -63,6 +78,10 @@ function App() {
     () => localStorage.getItem("hm-theme") || "system",
   );
   const navigate = useNavigate();
+  const cycleTheme = () =>
+    setTheme((t) =>
+      t === "system" ? "light" : t === "light" ? "dark" : "system",
+    );
   useEffect(() => {
     const media = matchMedia("(prefers-color-scheme: dark)");
     const apply = () => {
@@ -111,10 +130,17 @@ function App() {
             <span>Honzíkova moudra</span>
           </Link>
           <div className="header-actions">
-            <Link
+            <button
+              type="button"
               className="icon-button"
-              to="/nastaveni"
-              aria-label="Nastavení vzhledu"
+              onClick={cycleTheme}
+              aria-label={`Přepnout vzhled (nyní ${
+                theme === "dark"
+                  ? "tmavý"
+                  : theme === "light"
+                    ? "světlý"
+                    : "podle systému"
+              })`}
             >
               {theme === "dark" ? (
                 <Moon size={21} />
@@ -123,7 +149,7 @@ function App() {
               ) : (
                 <Monitor size={21} />
               )}
-            </Link>
+            </button>
             <Link
               className="account-button"
               to={session ? "/ucet" : "/prihlaseni"}
@@ -163,7 +189,18 @@ function App() {
           />
           <Route
             path="/nastaveni"
-            element={<Settings theme={theme} setTheme={setTheme} />}
+            element={
+              session ? (
+                <Settings theme={theme} setTheme={setTheme} />
+              ) : (
+                <Panel title="Nastavení">
+                  <Message>
+                    Nastavení je dostupné po přihlášení.{" "}
+                    <Link to="/prihlaseni?next=/nastaveni">Přihlásit se</Link>
+                  </Message>
+                </Panel>
+              )
+            }
           />
           <Route
             path="/admin"
@@ -191,6 +228,29 @@ function App() {
           />
         </Routes>
       </main>
+      <footer className="site-footer">
+        <a
+          className="footer-side"
+          href="https://www.facebook.com/groups/472719120086446"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <FacebookIcon size={22} />
+          <span>Honzíkova moudra</span>
+        </a>
+        <Link className="footer-add" to="/pridat" aria-label="Přidat moudro">
+          <Plus size={24} />
+        </Link>
+        <a
+          className="footer-side right"
+          href="https://www.linkedin.com/in/jan-har%C3%A1k/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span>Jan Harák</span>
+          <LinkedinIcon size={22} />
+        </a>
+      </footer>
       <nav className="bottom-nav" aria-label="Hlavní navigace">
         <NavLink to="/" end>
           <House />
@@ -200,10 +260,12 @@ function App() {
           <Plus />
           <span>Přidat</span>
         </NavLink>
-        <NavLink to="/nastaveni">
-          <SettingsIcon />
-          <span>Nastavení</span>
-        </NavLink>
+        {session && (
+          <NavLink to="/nastaveni">
+            <SettingsIcon />
+            <span>Nastavení</span>
+          </NavLink>
+        )}
       </nav>
     </>
   );
@@ -255,6 +317,7 @@ function Home({ dailyOnly = false }: { dailyOnly?: boolean }) {
   const [quotes, setQuotes] = useState<Quote[]>([]),
     [daily, setDaily] = useState<Daily[]>([]),
     [index, setIndex] = useState(0),
+    [dir, setDir] = useState(1),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(true),
     [offline, setOffline] = useState(false);
@@ -271,7 +334,12 @@ function Home({ dailyOnly = false }: { dailyOnly?: boolean }) {
       );
       setDaily(data.daily);
       setOffline(data.offline);
-      setIndex(0);
+      // Start on a random quote every page load (per product owner).
+      setIndex(
+        data.quotes.length
+          ? Math.floor(Math.random() * data.quotes.length)
+          : 0,
+      );
       await syncWidgetPlan(data.daily).catch(() => {});
     } catch (e) {
       setError(errorMessage(e));
@@ -285,8 +353,10 @@ function Home({ dailyOnly = false }: { dailyOnly?: boolean }) {
     window.addEventListener("online", online);
     return () => window.removeEventListener("online", online);
   }, []);
-  const move = (n: number) =>
+  const move = (n: number) => {
+    setDir(n);
     setIndex((i) => (i + n + quotes.length) % quotes.length);
+  };
   const current = quotes[index];
   let start: { x: number; y: number } | null = null;
   return (
@@ -344,7 +414,10 @@ function Home({ dailyOnly = false }: { dailyOnly?: boolean }) {
                 />
               </div>
             )}
-            <div className="current">
+            <div
+              className={`current ${dir > 0 ? "from-right" : "from-left"}`}
+              key={index}
+            >
               <QuoteCard
                 quote={current}
                 daily={daily.some(
@@ -376,27 +449,18 @@ function Home({ dailyOnly = false }: { dailyOnly?: boolean }) {
               </>
             )}
           </div>
-          <div className="position" aria-live="polite">
+          <div className="position">
             <div className="dots" aria-hidden="true">
               {Array.from({ length: Math.min(quotes.length, 5) }, (_, i) => (
                 <span key={i} className={i === index % 5 ? "selected" : ""} />
               ))}
             </div>
-            <span>
-              {index + 1} / {quotes.length} mouder
-            </span>
           </div>
         </>
       )}
       {dailyOnly && (
         <p className="muted">Společné moudro podle data v Praze.</p>
       )}
-      <div className="home-cta">
-        <Link to="/pridat" className="primary">
-          Navrhnout vlastní moudro
-        </Link>
-        <p>Nová moudra nejprve schválíme.</p>
-      </div>
     </section>
   );
 }

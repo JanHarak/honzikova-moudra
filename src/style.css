@@ -272,11 +272,42 @@ main {
   padding: 28px 18px;
   background: color-mix(in srgb, var(--surface) 95%, var(--muted));
   gap: 24px;
+  filter: blur(3px);
+  opacity: 0.72;
+  transition:
+    filter 0.34s ease,
+    opacity 0.34s ease;
 }
 .side-card .quote-text {
   font-size: 30px;
   letter-spacing: -0.8px;
   pointer-events: none;
+}
+@keyframes hm-slide-right {
+  from {
+    opacity: 0;
+    transform: translateX(34px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes hm-slide-left {
+  from {
+    opacity: 0;
+    transform: translateX(-34px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.current.from-right .quote-card {
+  animation: hm-slide-right 0.34s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.current.from-left .quote-card {
+  animation: hm-slide-left 0.34s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 .previous,
 .next {
@@ -333,6 +364,41 @@ main {
   font-size: 14px;
   color: var(--muted);
   margin-top: 10px;
+}
+.site-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 1200px;
+  margin: 48px auto 24px;
+  padding: 22px 24px;
+  border-top: 1px solid var(--border);
+}
+.footer-side {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 15px;
+}
+.footer-side:hover {
+  color: var(--link);
+}
+.footer-add {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 4px 12px #064bff2a;
+}
+.footer-add:hover {
+  background: #003cdb;
 }
 .bottom-nav {
   display: none;
@@ -612,6 +678,15 @@ input[type="radio"] {
     color: var(--link);
     font-weight: 700;
     background: color-mix(in srgb, var(--primary) 6%, var(--surface));
+  }
+  .site-footer {
+    margin: 28px 16px calc(96px + env(safe-area-inset-bottom));
+    padding: 18px 4px;
+    gap: 10px;
+  }
+  .footer-side {
+    font-size: 13px;
+    gap: 8px;
   }
   .panel {
     margin: 24px 0;
