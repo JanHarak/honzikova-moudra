@@ -41,6 +41,7 @@ Deno.serve(async (req) => {
 				const { data: prefs, error: prefError } = await admin.from('hm_notification_preferences').select(`installation_id,${preference}`).eq(preference, true).eq('permission', 'granted'); check(prefError);
 				const ids = (prefs || []).map((pref) => pref.installation_id);
 				const { data: endpoints, error: endpointError } = ids.length ? await admin.from('hm_push_endpoints').select('*').in('installation_id', ids) : { data: [], error: null }; check(endpointError);
+				if (ids.length > 0 && !endpoints?.length) retry = true;
 				for (const endpoint of endpoints || []) {
 					const { data: done, error: deliveryError } = await admin.from('hm_notification_deliveries').select('status,attempts').eq('event_id', event.event_id).eq('endpoint_id', endpoint.id).maybeSingle(); check(deliveryError);
 					if (done?.status === 'sent' || done?.status === 'invalid') continue;

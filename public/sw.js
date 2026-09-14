@@ -81,14 +81,20 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const path = event.notification.data?.path || "/denni";
+  const target = new URL(path, self.location.origin);
+  if (target.origin === self.location.origin && !target.hash) {
+    target.hash = target.pathname + target.search;
+    target.pathname = "/";
+    target.search = "";
+  }
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
       const client = clients.find((item) => "focus" in item);
       if (client) {
-        client.navigate(new URL(path, self.location.origin).href);
+        client.navigate(target.href);
         return client.focus();
       }
-      return self.clients.openWindow(new URL(path, self.location.origin).href);
+      return self.clients.openWindow(target.href);
     }),
   );
 });
