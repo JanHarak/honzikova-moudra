@@ -1,0 +1,14 @@
+{
+	"appId": "cz.honzikovamoudra.app",
+	"appName": "Honzíkova moudra",
+	"webDir": "dist",
+	"ios": {
+		"contentInset": "automatic"
+	},
+	"packageClassList": [
+		"AppPlugin",
+		"LocalNotificationsPlugin",
+		"PreferencesPlugin",
+		"PushNotificationsPlugin"
+	]
+}
