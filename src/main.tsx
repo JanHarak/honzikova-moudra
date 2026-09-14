@@ -543,10 +543,6 @@ function Home({ dailyOnly = false }: { dailyOnly?: boolean }) {
         : 0;
       setIndex(initialIndex);
       setInitialQuoteId(data.quotes[initialIndex]?.id);
-      if (emblaApi) {
-        emblaApi.reInit();
-        emblaApi.scrollTo(initialIndex, true);
-      }
       await syncWidgetPlan(data.daily).catch(() => {});
     } catch (e) {
       setError(errorMessage(e));
@@ -559,7 +555,12 @@ function Home({ dailyOnly = false }: { dailyOnly?: boolean }) {
     const online = () => void refresh();
     window.addEventListener("online", online);
     return () => window.removeEventListener("online", online);
-  }, [emblaApi]);
+  }, []);
+  useEffect(() => {
+    if (!emblaApi || !quotes.length) return;
+    emblaApi.reInit();
+    emblaApi.scrollTo(index, true);
+  }, [emblaApi, quotes]);
   useEffect(() => {
     if (!emblaApi) return;
     const onSelect = () => {
