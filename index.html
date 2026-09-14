@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#064BFF" />
+    <meta
+      name="description"
+      content="Honzíkova moudra. Dnešní dávka moudrosti a krátká moudra pro delší úsměvy."
+    />
+    <link rel="icon" type="image/svg+xml" href="/owl.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <title>Honzíkova moudra</title>
+    <script>
+      try {
+        let t = localStorage.getItem("hm-theme") || "system";
+        document.documentElement.dataset.theme =
+          t === "system"
+            ? matchMedia("(prefers-color-scheme:dark)").matches
+              ? "dark"
+              : "light"
+            : t;
+      } catch {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

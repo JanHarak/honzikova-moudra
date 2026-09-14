@@ -1,0 +1,27 @@
+project_id = "honzikova-moudra"
+[api]
+port = 54321
+schemas = ["public", "graphql_public"]
+[db]
+port = 54322
+major_version = 17
+[auth]
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://localhost:5173/auth/callback", "http://127.0.0.1:5173/auth/callback", "honzikovamoudra://auth/callback"]
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+# Google OAuth. On the hosted project this is configured in the dashboard
+# (Authentication > Providers > Google). For local `supabase start`, set the
+# SUPABASE_AUTH_GOOGLE_CLIENT_ID / SUPABASE_AUTH_GOOGLE_SECRET env vars.
+[auth.external.google]
+enabled = true
+client_id = "env(SUPABASE_AUTH_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_GOOGLE_SECRET)"
+skip_nonce_check = false
+[functions.hm-installation]
+verify_jwt = false
+[functions.hm-media]
+verify_jwt = false
+[functions.hm-push-worker]
+verify_jwt = false
