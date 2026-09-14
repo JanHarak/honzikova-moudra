@@ -34,6 +34,12 @@ describe("auth deep links", () => {
       ),
     ).toBe("/auth/callback?code=secret");
     expect(
+      safeTarget(
+        "https://example.test/#/auth/callback?code=secret",
+        "https://example.test",
+      ),
+    ).toBe("/auth/callback?code=secret");
+    expect(
       safeTarget("honzikovamoudra://admin?code=secret", "https://example.test"),
     ).toBeNull();
   });

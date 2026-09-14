@@ -65,10 +65,15 @@ export function safeTarget(raw: string, origin: string) {
         : null;
     }
     if (u.origin !== origin) return null;
-    return /^\/(moudra\/[\w-]+|denni|davky\/[\w-]+|auth\/callback)$/.test(
-      u.pathname,
+    const hashTarget = u.hash.startsWith("#/")
+      ? new URL(u.hash.slice(1), origin)
+      : null;
+    const pathname = hashTarget ? hashTarget.pathname : u.pathname;
+    const search = hashTarget ? hashTarget.search : u.search + u.hash;
+    return /^\/(moudra\/[^\w-]+|denni|davky\/[^\w-]+|auth\/callback)$/.test(
+      pathname,
     )
-      ? u.pathname + u.search + u.hash
+      ? pathname + search
       : null;
   } catch {
     return null;

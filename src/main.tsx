@@ -720,6 +720,29 @@ function Auth({
   useEffect(() => {
     if (session && mode !== "password") navigate(target, { replace: true });
   }, [session, mode, target, navigate]);
+  useEffect(() => {
+    if (!callback || !db) return;
+    const params = new URLSearchParams(loc.search);
+    const code = params.get("code");
+    const errorDescription = params.get("error_description") || params.get("error");
+    if (!code && !errorDescription) return;
+    if (errorDescription) {
+      setMessage("Přihlášení přes Google bylo zrušeno nebo zamítnuto. Zkus to znovu.");
+      return;
+    }
+    void (async () => {
+      try {
+        setBusy(true);
+        const { error } = await db.auth.exchangeCodeForSession(code!);
+        if (error) throw error;
+        navigate(target, { replace: true });
+      } catch {
+        setMessage("Přihlášení přes Google se nepodařilo dokončit. Zkus to znovu.");
+      } finally {
+        setBusy(false);
+      }
+    })();
+  }, [callback, loc.search, navigate, target]);
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!db) return;

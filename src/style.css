@@ -474,6 +474,8 @@ main {
 .footer-side {
   display: inline-flex;
   align-items: center;
+  justify-self: start;
+  justify-content: flex-start;
   gap: 10px;
   color: var(--muted);
   font-weight: 600;
@@ -753,27 +755,22 @@ input[type="radio"] {
     font-size: 13px;
   }
   .bottom-nav {
-    position: fixed;
+    display: none;
+  }
+  .site-footer {
     bottom: 0;
     left: 0;
     right: 0;
-    background: var(--surface);
-    border-top: 1px solid var(--border);
-    padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
-    display: flex;
-    justify-content: space-around;
-    z-index: 5;
-  }
-  .site-footer {
-    bottom: calc(72px + env(safe-area-inset-bottom));
     margin: 0;
+    width: 100vw;
+    max-width: none;
     padding: 10px 16px;
   }
   .footer-side {
     font-size: 12px;
   }
   .footer-add {
-    display: none;
+    display: inline-grid;
   }
   .bottom-nav a {
     color: var(--muted);
@@ -793,7 +790,7 @@ input[type="radio"] {
     background: color-mix(in srgb, var(--primary) 6%, var(--surface));
   }
   .site-footer {
-    bottom: calc(72px + env(safe-area-inset-bottom));
+    bottom: 0;
     margin: 0;
     padding: 10px 16px;
     gap: 10px;
