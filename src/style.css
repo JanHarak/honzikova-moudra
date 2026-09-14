@@ -89,6 +89,70 @@ h2 {
 p {
   line-height: 1.6;
 }
+.install-banner {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: linear-gradient(135deg, #0535af, #2d63ff);
+  color: #fff;
+  box-shadow: 0 10px 30px rgba(5, 53, 175, 0.2);
+}
+.install-banner__content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 14px 24px 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  position: relative;
+}
+.install-banner__content strong {
+  display: block;
+  font-size: 15px;
+  margin-bottom: 2px;
+}
+.install-banner__content p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  line-height: 1.4;
+}
+.install-banner .primary {
+  background: #fff;
+  color: var(--primary);
+  border: none;
+  box-shadow: none;
+}
+.install-banner__actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-left: auto;
+  position: absolute;
+  right: 24px;
+  top: 14px;
+}
+.install-banner__close {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: transparent;
+  color: #fff;
+  border-radius: 999px;
+  font-size: 24px;
+  line-height: 1;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0;
+  align-self: flex-start;
+}
+.install-banner .primary:hover {
+  background: #eef3ff;
+}
 main {
   max-width: 1200px;
   margin: auto;

@@ -5,6 +5,11 @@ import {
   type FormEvent,
   type ReactNode,
 } from "react";
+import {
+  getInstallBannerState,
+  INSTALL_BANNER_STORAGE_KEY,
+  type BeforeInstallPromptEvent,
+} from "./pwa";
 import { createRoot } from "react-dom/client";
 import {
   HashRouter,
@@ -109,6 +114,107 @@ function Message({ children }: { children: ReactNode }) {
     </p>
   );
 }
+function InstallBanner() {
+  const [installState, setInstallState] = useState(() => {
+    const hidden = localStorage.getItem(INSTALL_BANNER_STORAGE_KEY) === "1";
+    return hidden
+      ? { show: false, mode: "hidden" as const }
+      : getInstallBannerState({
+          standalone: window.matchMedia("(display-mode: standalone)").matches,
+          ios: /iPhone|iPad|iPod/i.test(navigator.userAgent),
+          hasBeforeInstallPrompt: false,
+        });
+  });
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(
+    null,
+  );
+
+  useEffect(() => {
+    const updateState = () => {
+      const hidden = localStorage.getItem(INSTALL_BANNER_STORAGE_KEY) === "1";
+      const next = hidden
+        ? { show: false, mode: "hidden" as const }
+        : getInstallBannerState({
+            standalone: window.matchMedia("(display-mode: standalone)").matches,
+            ios: /iPhone|iPad|iPod/i.test(navigator.userAgent),
+            hasBeforeInstallPrompt: !!deferredPrompt,
+          });
+      setInstallState(next);
+    };
+
+    const onBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      const promptEvent = event as BeforeInstallPromptEvent;
+      setDeferredPrompt(promptEvent);
+      const hidden = localStorage.getItem(INSTALL_BANNER_STORAGE_KEY) === "1";
+      if (!hidden) {
+        setInstallState(
+          getInstallBannerState({
+            standalone: false,
+            ios: /iPhone|iPad|iPod/i.test(navigator.userAgent),
+            hasBeforeInstallPrompt: true,
+          }),
+        );
+      }
+    };
+
+    window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+    window.addEventListener("appinstalled", () => {
+      localStorage.setItem(INSTALL_BANNER_STORAGE_KEY, "1");
+      setInstallState({ show: false, mode: "standalone" });
+    });
+    updateState();
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+    };
+  }, [deferredPrompt]);
+
+  if (!installState.show) return null;
+
+  const triggerInstall = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    setDeferredPrompt(null);
+    setInstallState({ show: false, mode: "standalone" });
+  };
+
+  const dismiss = () => {
+    localStorage.setItem(INSTALL_BANNER_STORAGE_KEY, "1");
+    setInstallState({ show: false, mode: "hidden" });
+  };
+
+  return (
+    <div className="install-banner" role="status" aria-live="polite">
+      <div className="install-banner__content">
+        <div>
+          <strong>Nainstalovat aplikaci</strong>
+          <p>
+            {installState.mode === "ios"
+              ? "Na iPhone/iPad otevřete Sdílet a vyberte Přidat na plochu."
+              : "Přidejte si aplikaci na plochu a používejte ji jako nativní app."}
+          </p>
+        </div>
+        <div className="install-banner__actions">
+          {installState.mode === "prompt" && (
+            <button type="button" className="primary" onClick={triggerInstall}>
+              Nainstalovat
+            </button>
+          )}
+          <button
+            type="button"
+            className="install-banner__close"
+            onClick={dismiss}
+            aria-label="Skrýt banner instalace"
+          >
+            ×
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 function App() {
   const [session, setSession] = useState<Session | null>(null),
     [admin, setAdmin] = useState(false),
@@ -174,6 +280,7 @@ function App() {
   useEffect(() => initNative(navigate), [navigate]);
   return (
     <>
+      <InstallBanner />
       <header className="header">
         <div className="header-inner">
           <Link to="/" className="brand">
