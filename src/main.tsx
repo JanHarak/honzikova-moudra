@@ -221,6 +221,56 @@ function InstallBanner() {
     </div>
   );
 }
+function NotificationPrompt() {
+  const [visible, setVisible] = useState(() =>
+    window.matchMedia("(display-mode: standalone)").matches &&
+    "Notification" in window &&
+    Notification.permission !== "granted" &&
+    localStorage.getItem("hm-notification-prompt-dismissed") !== "1",
+  );
+  const [busy, setBusy] = useState(false);
+  if (!visible) return null;
+
+  async function enable() {
+    setBusy(true);
+    try {
+      await setWebPush(true);
+      localStorage.setItem("hm-news", "true");
+      localStorage.setItem("hm-notification-prompt-dismissed", "1");
+      setVisible(false);
+    } catch (error) {
+      localStorage.setItem("hm-notification-prompt-dismissed", "1");
+      setVisible(false);
+      console.warn("Notification setup failed", error);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function dismiss() {
+    localStorage.setItem("hm-notification-prompt-dismissed", "1");
+    setVisible(false);
+  }
+
+  return (
+    <div className="modal-backdrop" role="presentation">
+      <section className="notification-dialog" role="dialog" aria-modal="true" aria-labelledby="notification-dialog-title">
+        <h2 id="notification-dialog-title">Povolit upozornění?</h2>
+        <p>
+          Upozorníme tě, když přibude nové schválené moudro. Povolení můžeš kdykoli změnit v nastavení.
+        </p>
+        <div className="dialog-actions">
+          <button type="button" className="secondary" onClick={dismiss} disabled={busy}>
+            Později
+          </button>
+          <button type="button" className="primary" onClick={() => void enable()} disabled={busy}>
+            {busy ? <><span className="spinner" aria-hidden="true" /> Nastavuji…</> : "Povolit upozornění"}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
 function App() {
   const [session, setSession] = useState<Session | null>(null),
     [admin, setAdmin] = useState(false),
@@ -287,6 +337,7 @@ function App() {
   return (
     <>
       <InstallBanner />
+      <NotificationPrompt />
       <header className="header">
         <div className="header-inner">
           <Link to="/" className="brand">
@@ -1115,12 +1166,14 @@ function Settings({
     [news, setNews] = useState(localStorage.getItem("hm-news") === "true"),
     [time, setTime] = useState(localStorage.getItem("hm-time") || "08:00"),
     [permission, setPermission] = useState("Nezjištěno"),
-    [message, setMessage] = useState("");
+    [message, setMessage] = useState(""),
+    [busy, setBusy] = useState<"daily" | "news" | null>(null);
   useEffect(() => {
     if (native) getPermissions().then(setPermission);
     else if ("Notification" in window) setPermission(Notification.permission);
   }, []);
   async function updateDaily(enabled: boolean, t = time) {
+    setBusy("daily");
     try {
       if (native) await setDailyReminder(enabled, t);
       else {
@@ -1135,6 +1188,8 @@ function Settings({
       setPermission(native ? await getPermissions() : Notification.permission);
     } catch (e) {
       setMessage(errorMessage(e));
+    } finally {
+      setBusy(null);
     }
   }
   async function sendTestNotification() {
@@ -1190,17 +1245,20 @@ function Settings({
         <span>Moudro dne</span>
         <input
           type="checkbox"
-          disabled={demo}
+          disabled={demo || busy !== null}
+          aria-busy={busy === "daily"}
           checked={daily}
           onChange={(e) => void updateDaily(e.target.checked)}
         />
       </label>
+      {busy === "daily" && <p className="setting-progress" role="status"><span className="spinner" aria-hidden="true" /> Ukládám nastavení…</p>}
       <label>
         Čas připomínky
         <input
           type="time"
           value={time}
-          disabled={demo}
+          disabled={demo || busy !== null}
+          aria-busy={busy === "daily"}
           onChange={(e) => void updateDaily(daily, e.target.value)}
         />
       </label>
@@ -1208,10 +1266,12 @@ function Settings({
         <span>Nově publikovaná moudra</span>
         <input
           type="checkbox"
-          disabled={demo}
+          disabled={demo || busy !== null}
+          aria-busy={busy === "news"}
           checked={news}
           onChange={async (e) => {
             const enabled = e.target.checked;
+            setBusy("news");
             try {
               if (native) await setNewQuotes(enabled);
               else await setWebPush(enabled);
@@ -1220,10 +1280,13 @@ function Settings({
               setPermission(native ? await getPermissions() : Notification.permission);
             } catch (err) {
               setMessage(errorMessage(err));
+            } finally {
+              setBusy(null);
             }
           }}
         />
       </label>
+      {busy === "news" && <p className="setting-progress" role="status"><span className="spinner" aria-hidden="true" /> Ukládám nastavení…</p>}
       <p className="muted">
         Oprávnění k oznámením: {permission}. Změnit ho můžeš v nastavení zařízení nebo prohlížeče.
       </p>
