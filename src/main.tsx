@@ -1190,7 +1190,7 @@ function Settings({
         <span>Moudro dne</span>
         <input
           type="checkbox"
-          disabled={demo || (!native && !webPushAvailable())}
+          disabled={demo}
           checked={daily}
           onChange={(e) => void updateDaily(e.target.checked)}
         />
@@ -1200,7 +1200,7 @@ function Settings({
         <input
           type="time"
           value={time}
-          disabled={demo || (!native && !webPushAvailable())}
+          disabled={demo}
           onChange={(e) => void updateDaily(daily, e.target.value)}
         />
       </label>
@@ -1208,7 +1208,7 @@ function Settings({
         <span>Nově publikovaná moudra</span>
         <input
           type="checkbox"
-          disabled={(!native && !webPushAvailable()) || demo}
+          disabled={demo}
           checked={news}
           onChange={async (e) => {
             const enabled = e.target.checked;
