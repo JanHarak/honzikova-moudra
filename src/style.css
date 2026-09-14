@@ -659,8 +659,7 @@ input[type="radio"] {
   .header-actions {
     gap: 8px;
   }
-  .header-add,
-  .account-button > span:last-child {
+  .header-add {
     display: none;
   }
   .icon-button,
