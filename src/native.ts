@@ -40,6 +40,22 @@ export async function setDailyReminder(enabled: boolean, time: string) {
     ],
   });
 }
+export async function showTestNativeNotification() {
+  if (!native) throw Error("NATIVE_REQUIRED");
+  const permission = await LocalNotifications.requestPermissions();
+  if (permission.display !== "granted") throw Error("PERMISSION_DENIED");
+  await LocalNotifications.schedule({
+    notifications: [
+      {
+        id: 99,
+        title: "Honzíkova moudra",
+        body: "Testovací upozornění funguje.",
+        schedule: { at: new Date(Date.now() + 1000) },
+        extra: { path: "/denni" },
+      },
+    ],
+  });
+}
 async function installation() {
   const saved = await Preferences.get({ key: "hm-installation" });
   if (saved.value)

@@ -61,3 +61,34 @@ self.addEventListener("fetch", (event) => {
     ),
   );
 });
+
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data?.json() || {};
+  } catch {}
+  const title = data.title || "Honzíkova moudra";
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: data.body || "Dnešní moudro na tebe čeká.",
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
+      data: { path: data.path || "/denni" },
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const path = event.notification.data?.path || "/denni";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      const client = clients.find((item) => "focus" in item);
+      if (client) {
+        client.navigate(new URL(path, self.location.origin).href);
+        return client.focus();
+      }
+      return self.clients.openWindow(new URL(path, self.location.origin).href);
+    }),
+  );
+});

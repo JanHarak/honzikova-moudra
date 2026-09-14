@@ -9,6 +9,10 @@ import {
   getInstallBannerState,
   INSTALL_BANNER_STORAGE_KEY,
   type BeforeInstallPromptEvent,
+  setWebDaily,
+  setWebPush,
+  ensureWebPush,
+  webPushAvailable,
 } from "./pwa";
 import { createRoot } from "react-dom/client";
 import {
@@ -53,7 +57,9 @@ import {
   getPermissions,
   setNewQuotes,
   syncWidgetPlan,
+  showTestNativeNotification,
 } from "./native";
+import { showTestWebNotification } from "./pwa";
 import "./style.css";
 function Owl({ size = 48 }: { size?: number }) {
   return (
@@ -1104,23 +1110,39 @@ function Settings({
   setTheme: (v: string) => void;
 }) {
   const [daily, setDaily] = useState(
-      localStorage.getItem("hm-daily") === "true",
+      localStorage.getItem(native ? "hm-daily" : "hm-web-daily") === "true",
     ),
     [news, setNews] = useState(localStorage.getItem("hm-news") === "true"),
     [time, setTime] = useState(localStorage.getItem("hm-time") || "08:00"),
     [permission, setPermission] = useState("Nezjištěno"),
     [message, setMessage] = useState("");
   useEffect(() => {
-    getPermissions().then(setPermission);
+    if (native) getPermissions().then(setPermission);
+    else if ("Notification" in window) setPermission(Notification.permission);
   }, []);
   async function updateDaily(enabled: boolean, t = time) {
     try {
-      await setDailyReminder(enabled, t);
+      if (native) await setDailyReminder(enabled, t);
+      else {
+        if (enabled && !webPushAvailable()) throw Error("WEB_PUSH_UNAVAILABLE");
+        if (enabled) await ensureWebPush();
+        await setWebDaily(enabled);
+      }
       setDaily(enabled);
       setTime(t);
-      localStorage.setItem("hm-daily", String(enabled));
+      localStorage.setItem(native ? "hm-daily" : "hm-web-daily", String(enabled));
       localStorage.setItem("hm-time", t);
-      setPermission(await getPermissions());
+      setPermission(native ? await getPermissions() : Notification.permission);
+    } catch (e) {
+      setMessage(errorMessage(e));
+    }
+  }
+  async function sendTestNotification() {
+    try {
+      if (native) await showTestNativeNotification();
+      else await showTestWebNotification();
+      setPermission(native ? await getPermissions() : Notification.permission);
+      setMessage("Testovací upozornění bylo odesláno.");
     } catch (e) {
       setMessage(errorMessage(e));
     }
@@ -1161,14 +1183,14 @@ function Settings({
       </p>
       {!native && (
         <Message>
-          Upozornění jsou dostupná v nativní iOS aplikaci. Web funguje bez nich.
+          Upozornění vyžadují instalovanou mobilní aplikaci nebo PWA a povolení oznámení.
         </Message>
       )}
       <label className="switch-row">
         <span>Moudro dne</span>
         <input
           type="checkbox"
-          disabled={!native}
+          disabled={demo || (!native && !webPushAvailable())}
           checked={daily}
           onChange={(e) => void updateDaily(e.target.checked)}
         />
@@ -1186,15 +1208,16 @@ function Settings({
         <span>Nově publikovaná moudra</span>
         <input
           type="checkbox"
-          disabled={!native || demo}
+          disabled={(!native && !webPushAvailable()) || demo}
           checked={news}
           onChange={async (e) => {
             const enabled = e.target.checked;
             try {
-              await setNewQuotes(enabled);
+              if (native) await setNewQuotes(enabled);
+              else await setWebPush(enabled);
               setNews(enabled);
               localStorage.setItem("hm-news", String(enabled));
-              setPermission(await getPermissions());
+              setPermission(native ? await getPermissions() : Notification.permission);
             } catch (err) {
               setMessage(errorMessage(err));
             }
@@ -1202,9 +1225,11 @@ function Settings({
         />
       </label>
       <p className="muted">
-        Systémové oprávnění: {permission}. Změnit ho můžeš v Nastavení iOS →
-        Oznámení.
+        Oprávnění k oznámením: {permission}. Změnit ho můžeš v nastavení zařízení nebo prohlížeče.
       </p>
+      <button type="button" className="secondary" onClick={() => void sendTestNotification()}>
+        Odeslat testovací upozornění
+      </button>
       {message && <Message>{message}</Message>}
     </Panel>
   );

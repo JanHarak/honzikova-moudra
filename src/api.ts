@@ -95,6 +95,9 @@ export function errorMessage(e: unknown) {
       ? String(e.message)
       : String(e);
   const known: Record<string, string> = {
+    WEB_PUSH_UNAVAILABLE: "Webová upozornění nejsou v tomto prohlížeči dostupná.",
+    PERMISSION_DENIED: "Oznámení nebyla povolena. Povol je v nastavení prohlížeče.",
+    BACKEND_REQUIRED: "Upozornění vyžadují připojení k serveru.",
     EMAIL_REQUIRED: "Nejdřív ověř svůj e-mail.",
     AUTH_REQUIRED: "Přihlas se znovu. Rozepsaný text zůstává zachován.",
     RATE_LIMIT: "Nejvýše 5 návrhů za hodinu. Zkus to později.",
