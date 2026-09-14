@@ -7,7 +7,7 @@ port = 54322
 major_version = 17
 [auth]
 site_url = "http://localhost:5173"
-additional_redirect_urls = ["http://localhost:5173/auth/callback", "http://127.0.0.1:5173/auth/callback", "honzikovamoudra://auth/callback"]
+additional_redirect_urls = ["http://localhost:5173/#/auth/callback", "http://127.0.0.1:5173/#/auth/callback", "honzikovamoudra://auth/callback"]
 [auth.email]
 enable_signup = true
 enable_confirmations = true

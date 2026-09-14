@@ -324,6 +324,8 @@ function App() {
           <Route path="/denni" element={<Home dailyOnly />} />
           <Route path="/moudra/:id" element={<Detail />} />
           <Route path="/davky/:id" element={<Batch />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<Terms />} />
           <Route path="/prihlaseni" element={<Auth session={session} />} />
           <Route
             path="/auth/callback"
@@ -476,6 +478,38 @@ function QuoteCard({
       </Link>
       <img className="quote-logo" src="/hm_logo.png" alt="HM" />
     </article>
+  );
+}
+function PrivacyPolicy() {
+  return (
+    <Panel title="Ochrana soukromí">
+      <p>Aplikace Honzíkova moudra chrání vaše soukromí a zpracovává pouze údaje potřebné pro svůj provoz.</p>
+      <h2>Jaké údaje zpracováváme</h2>
+      <p>Při vytvoření účtu můžeme zpracovávat e-mailovou adresu a údaje poskytnuté přihlašovací službou, například jméno nebo profilový obrázek. Pokud odešlete vlastní moudro, zpracováváme také jeho text a případné obrázky či alternativní popisy.</p>
+      <h2>Proč údaje používáme</h2>
+      <p>Údaje používáme pro přihlášení, správu účtu, zveřejnění schváleného obsahu, komunikaci související s účtem a zabezpečení aplikace. Údaje neprodáváme ani nepoužíváme pro zasílání nevyžádané reklamy.</p>
+      <h2>Uchovávání a vaše práva</h2>
+      <p>Údaje uchováváme jen po dobu potřebnou pro uvedené účely nebo po dobu vyžadovanou právními předpisy. Můžete požádat o přístup, opravu nebo odstranění svých údajů. Účet lze odstranit v nastavení aplikace.</p>
+      <h2>Cookies a technické údaje</h2>
+      <p>Aplikace používá technické úložiště pro přihlášení, nastavení a fungování instalované webové aplikace. Můžeme také zpracovávat základní technické údaje potřebné pro bezpečnost a provoz služby.</p>
+      <p className="muted">Tato stránka je obecná informace a může být doplněna podle skutečného provozovatele aplikace.</p>
+    </Panel>
+  );
+}
+function Terms() {
+  return (
+    <Panel title="Podmínky používání">
+      <p>Používáním aplikace Honzíkova moudra souhlasíte s těmito obecnými podmínkami. Aplikace slouží ke čtení, sdílení a navrhování krátkých textů a obrázků.</p>
+      <h2>Účet a bezpečnost</h2>
+      <p>Za údaje použité při přihlášení odpovídáte vy. Přístupové údaje chraňte před zneužitím a při podezření na zneužití nás informujte.</p>
+      <h2>Vlastní obsah</h2>
+      <p>Odesláním obsahu potvrzujete, že k němu máte potřebná práva a že jeho zveřejnění neporušuje zákon ani práva jiných osob. Pro účely provozu aplikace poskytujete nevýhradní oprávnění obsah zobrazovat, upravit jeho formát a moderovat jej.</p>
+      <h2>Moderace</h2>
+      <p>Provozovatel může obsah před zveřejněním schválit, upravit, odmítnout nebo odstranit, zejména pokud je protiprávní, urážlivý, zavádějící nebo nesouvisí se zaměřením aplikace.</p>
+      <h2>Dostupnost služby</h2>
+      <p>Aplikace je poskytována s přiměřenou péčí, ale nelze zaručit její nepřetržitou dostupnost ani bezchybný provoz. Provozovatel může službu měnit, aktualizovat nebo dočasně omezit.</p>
+      <p className="muted">Tyto podmínky jsou obecný vzor a před ostrým použitím je vhodné doplnit identifikační údaje provozovatele.</p>
+    </Panel>
   );
 }
 function Home({ dailyOnly = false }: { dailyOnly?: boolean }) {
@@ -891,6 +925,9 @@ function Auth({
         <button onClick={() => setMode("register")}>Registrace</button>
         <button onClick={() => setMode("reset")}>Zapomenuté heslo</button>
       </div>
+      <p className="muted auth-privacy-link">
+        Přihlášením souhlasíš s podmínkami zpracování osobních údajů. <Link to="/privacy-policy">Ochrana soukromí</Link> a <Link to="/terms">Podmínky používání</Link>.
+      </p>
     </Panel>
   );
 }
