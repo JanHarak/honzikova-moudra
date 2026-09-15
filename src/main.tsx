@@ -229,19 +229,23 @@ function NotificationPrompt() {
     localStorage.getItem("hm-notification-prompt-dismissed") !== "1",
   );
   const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const dailyTime = localStorage.getItem("hm-time") || "08:00";
   if (!visible) return null;
 
   async function enable() {
     setBusy(true);
+    setMessage("");
     try {
       await setWebPush(true);
       localStorage.setItem("hm-news", "true");
+      await setWebDaily(true, dailyTime);
+      localStorage.setItem("hm-web-daily", "true");
+      localStorage.setItem("hm-time", dailyTime);
       localStorage.setItem("hm-notification-prompt-dismissed", "1");
       setVisible(false);
     } catch (error) {
-      localStorage.setItem("hm-notification-prompt-dismissed", "1");
-      setVisible(false);
-      console.warn("Notification setup failed", error);
+      setMessage(errorMessage(error));
     } finally {
       setBusy(false);
     }
@@ -257,8 +261,9 @@ function NotificationPrompt() {
       <section className="notification-dialog" role="dialog" aria-modal="true" aria-labelledby="notification-dialog-title">
         <h2 id="notification-dialog-title">Povolit upozornění?</h2>
         <p>
-          Upozorníme tě, když přibude nové schválené moudro. Povolení můžeš kdykoli změnit v nastavení.
+          Každý den v {dailyTime} ti připomeneme moudro dne a upozorníme tě, když přibude nové schválené moudro. Čas i upozornění můžeš kdykoli změnit v nastavení.
         </p>
+        {message && <Message>{message}</Message>}
         <div className="dialog-actions">
           <button type="button" className="secondary" onClick={dismiss} disabled={busy}>
             Později

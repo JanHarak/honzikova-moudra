@@ -1,6 +1,7 @@
 import { SignJWT, importPKCS8 } from 'npm:jose@6';
 import webpush from 'npm:web-push@3.6.7';
 import { admin, json, check } from '../_shared/server.ts';
+import { eventOutcome, shouldSkipDelivery } from './scheduling.ts';
 
 type Event = { event_id: string; batch_id: string | null; notification_type: string; daily_date: string | null; attempts: number };
 const configured = (keys: string[]) => keys.every((key) => Deno.env.get(key));
@@ -27,6 +28,7 @@ Deno.serve(async (req) => {
 	if (req.method !== 'POST' || req.headers.get('Authorization') !== `Bearer ${Deno.env.get('WORKER_SECRET')}` || !Deno.env.get('WORKER_SECRET')) return json({ error: 'FORBIDDEN' }, 403);
 	try {
 		check((await admin.rpc('hm_fill_daily_plan')).error);
+		check((await admin.rpc('hm_enqueue_daily_notification')).error);
 		const { data: events, error } = await admin.rpc('hm_claim_notification_events');
 		check(error);
 		for (const event of (events || []) as Event[]) {
@@ -51,21 +53,12 @@ Deno.serve(async (req) => {
 				const ids = (prefs || []).map((pref) => pref.installation_id);
 				const { data: endpoints, error: endpointError } = ids.length ? await admin.from('hm_push_endpoints').select('*').in('installation_id', ids) : { data: [], error: null }; check(endpointError);
 				if (ids.length > 0 && !endpoints?.length) retry = true;
-				if (event.notification_type === 'daily' && ids.length) {
-					const { data: installations, error: installationError } = await admin.from('hm_installations').select('id,timezone').in('id', ids); check(installationError);
-					const timezones = new Map((installations || []).map((installation) => [installation.id, installation.timezone]));
-					for (const pref of prefs || []) {
-						const endpoint = (endpoints || []).find((item) => item.installation_id === pref.installation_id);
-						const local = localDateTime(timezones.get(pref.installation_id) || 'Europe/Prague');
-						if (!endpoint || local.date !== event.daily_date || local.time < String(pref.daily_time).slice(0, 5)) retry = true;
-					}
-				}
 				for (const endpoint of endpoints || []) {
 					const { data: done, error: deliveryError } = await admin.from('hm_notification_deliveries').select('status,attempts').eq('event_id', event.event_id).eq('endpoint_id', endpoint.id).maybeSingle(); check(deliveryError);
-					if (done?.status === 'sent' || done?.status === 'invalid') continue;
+					if (shouldSkipDelivery(event.notification_type, done)) continue;
 					if (event.notification_type === 'daily') {
 						const pref = (prefs || []).find((item) => item.installation_id === endpoint.installation_id);
-						const { data: installation } = await admin.from('hm_installations').select('timezone').eq('id', endpoint.installation_id).maybeSingle();
+						const { data: installation, error: installationError } = await admin.from('hm_installations').select('timezone').eq('id', endpoint.installation_id).maybeSingle(); check(installationError);
 						const local = localDateTime(installation?.timezone || 'Europe/Prague');
 						if (!pref || local.date !== event.daily_date || local.time < String(pref.daily_time).slice(0, 5)) continue;
 					}
@@ -88,7 +81,7 @@ Deno.serve(async (req) => {
 					}
 				}
 			} catch { retry = true; }
-			check((await admin.from('hm_notification_outbox').update({ status: retry ? (event.attempts >= 10 ? 'failed' : 'pending') : 'sent', next_attempt_at: new Date(Date.now() + Math.min(3600000, 2 ** event.attempts * 30000)).toISOString(), last_error: retry ? 'Provider or delivery failure' : null }).eq('event_id', event.event_id)).error);
+			check((await admin.from('hm_notification_outbox').update({ ...eventOutcome(event.notification_type, event.attempts, retry), last_error: retry ? 'Provider or delivery failure' : null }).eq('event_id', event.event_id)).error);
 		}
 		return json({ processed: events?.length || 0 });
 	} catch { return json({ error: 'WORKER_FAILED' }, 500); }
