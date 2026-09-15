@@ -976,7 +976,8 @@ function Auth({
               onClick={google}
               disabled={busy}
             >
-              Pokračovat přes Google
+              <img className="oauth-logo" src="/google-g.png" width="20" height="20" alt="" aria-hidden="true" />
+              <span>Pokračovat přes Google</span>
             </button>
           </>
         )}

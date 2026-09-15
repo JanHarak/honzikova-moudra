@@ -243,22 +243,44 @@ main {
   padding: 10px;
 }
 .oauth {
+  --google-bg: #fff;
+  --google-text: #1f1f1f;
+  --google-border: #747775;
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 10px;
   width: 100%;
   min-height: 46px;
-  padding: 12px 22px;
-  border-radius: 11px;
-  font-weight: 600;
-  font-size: 16px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
+  padding: 12px;
+  border-radius: 4px;
+  font-family: "Google Sans", Arial, sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.25px;
+  border: 1px solid var(--google-border);
+  background: var(--google-bg);
+  color: var(--google-text);
+  transition: background-color 150ms, box-shadow 150ms;
 }
-.oauth:hover {
-  border-color: var(--link);
+.oauth-logo {
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+:root[data-theme="dark"] .oauth {
+  --google-bg: #131314;
+  --google-text: #e3e3e3;
+  --google-border: #8e918f;
+}
+.oauth:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--google-text) 8%, var(--google-bg));
+  box-shadow: 0 1px 2px #0003;
+}
+.oauth:active:not(:disabled) {
+  background: color-mix(in srgb, var(--google-text) 12%, var(--google-bg));
 }
 .oauth-divider {
   display: flex;

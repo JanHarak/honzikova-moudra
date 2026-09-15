@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
 				if (event.notification_type === 'daily') {
 					const { data: quote, error: quoteError } = await admin.rpc('hm_get_random_notification_quote'); check(quoteError);
 					if (!quote?.length) { await admin.from('hm_notification_outbox').update({ status: 'cancelled' }).eq('event_id', event.event_id); continue; }
-					payload = { title: 'Moudro pro dnešek', body: quote[0].text, path: `/moudra/${quote[0].id}` };
+					payload = { title: 'Moudro pro dnešní den', body: quote[0].text, path: `/moudra/${quote[0].id}` };
 				} else {
 					const { data: quotes, error: quoteError } = await admin.rpc('hm_get_publication_batch', { p_id: event.batch_id }); check(quoteError);
 					if (!quotes?.length) { await admin.from('hm_notification_outbox').update({ status: 'cancelled' }).eq('event_id', event.event_id); continue; }
