@@ -1,6 +1,7 @@
 import { PGlite } from "@electric-sql/pglite";
 import fs from "node:fs/promises";
 import assert from "node:assert/strict";
+import { testNotificationReschedule } from "./test-notification-reschedule.mjs";
 const db = new PGlite();
 await db.exec(
   `create role anon; create role authenticated; create role service_role bypassrls; create schema auth; create table auth.users(id uuid primary key,email_confirmed_at timestamptz); create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$; grant usage on schema auth to anon,authenticated; grant execute on function auth.uid() to anon,authenticated; create schema storage; create table storage.objects(bucket_id text,name text); create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]); grant usage on schema storage to anon,authenticated,service_role; grant select on storage.objects to anon,authenticated;`,
@@ -208,4 +209,5 @@ await as("anon", "", async () =>
 console.log(
   "PASS: anonymous/unverified/owner/foreign/admin permissions, immutable submissions, rate limit, idempotency, private installation APIs, publication deduplication, seven-day plan, hidden content and private fields.",
 );
+await testNotificationReschedule(db);
 await db.close();

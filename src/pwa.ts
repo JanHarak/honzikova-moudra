@@ -29,20 +29,47 @@ function decodeBase64Url(value: string) {
 }
 
 export function webPushAvailable() {
-  return Boolean(
-    !window.matchMedia("(display-mode: standalone)").matches ||
-      "serviceWorker" in navigator,
-  ) && Boolean(db && vapidKey() && "PushManager" in window && "Notification" in window);
+  return Boolean(db && vapidKey() && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window);
+}
+
+function withPushTimeout<T>(operation: Promise<T>, code = "WEB_PUSH_TIMEOUT"): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(Error(code)), 20000);
+    operation.then(resolve, reject).finally(() => clearTimeout(timer));
+  });
+}
+
+async function invokeInstallation(body: Record<string, unknown>) {
+  if (!db) throw Error("BACKEND_REQUIRED");
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20000);
+  try {
+    const result = await db.functions.invoke("hm-installation", { body, signal: controller.signal });
+    if (controller.signal.aborted) throw Error("WEB_PUSH_TIMEOUT");
+    if (result.error) throw result.error;
+    return result.data;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function webPermission() {
+  // Run before any async work so Safari still sees the user's tap.
+  const permission = Notification.permission === "default"
+    ? await withPushTimeout(Notification.requestPermission())
+    : Notification.permission;
+  if (permission !== "granted") throw Error("PERMISSION_DENIED");
+}
+
+function readyWorker() {
+  return withPushTimeout(navigator.serviceWorker.ready, "SERVICE_WORKER_TIMEOUT");
 }
 
 async function webInstallation() {
   const saved = localStorage.getItem(WEB_INSTALLATION_KEY);
   if (saved) return JSON.parse(saved) as WebInstallation;
   if (!db) throw Error("BACKEND_REQUIRED");
-  const { data, error } = await db.functions.invoke("hm-installation", {
-    body: { action: "register" },
-  });
-  if (error) throw error;
+  const data = await invokeInstallation({ action: "register" });
   localStorage.setItem(WEB_INSTALLATION_KEY, JSON.stringify(data));
   return data as WebInstallation;
 }
@@ -52,8 +79,7 @@ async function updateWebInstallation(
   subscription: PushSubscription | null,
 ) {
   const installation = await webInstallation();
-  const { error } = await db!.functions.invoke("hm-installation", {
-    body: {
+  await invokeInstallation({
       action: "update",
       ...installation,
       enabled,
@@ -61,55 +87,48 @@ async function updateWebInstallation(
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       provider: "webpush",
       token: subscription ? JSON.stringify(subscription.toJSON()) : undefined,
-    },
   });
-  if (error) throw error;
 }
 
 export async function setWebPush(enabled: boolean) {
   if (!webPushAvailable()) throw Error("WEB_PUSH_UNAVAILABLE");
-  const registration = await navigator.serviceWorker.ready;
   if (!enabled) {
     await updateWebInstallation(false, null);
     return;
   }
-  const subscription = await requestWebSubscription(registration);
+  await webPermission();
+  const subscription = await requestWebSubscription(await readyWorker());
   await updateWebInstallation(true, subscription);
 }
 
 async function requestWebSubscription(registration: ServiceWorkerRegistration) {
-  const permission = await Notification.requestPermission();
-  if (permission !== "granted") throw Error("PERMISSION_DENIED");
-  return registration.pushManager.subscribe({
+  const current = await withPushTimeout(registration.pushManager.getSubscription());
+  if (current) return current;
+  return withPushTimeout(registration.pushManager.subscribe({
     userVisibleOnly: true,
     applicationServerKey: decodeBase64Url(vapidKey()!),
-  });
+  }));
 }
 
 export async function ensureWebPush() {
   if (!webPushAvailable()) throw Error("WEB_PUSH_UNAVAILABLE");
-  const registration = await navigator.serviceWorker.ready;
-  const subscription = registration.pushManager;
-  const current = await subscription.getSubscription();
+  await webPermission();
+  const current = await requestWebSubscription(await readyWorker());
   await updateWebInstallation(
     localStorage.getItem("hm-news") === "true",
-    current || (await requestWebSubscription(registration)),
+    current,
   );
 }
 
 export async function setWebDaily(enabled: boolean, time: string) {
   const installation = await webInstallation();
-  const { error } = await db!.functions.invoke("hm-installation", {
-    body: { action: "daily", ...installation, enabled, time },
-  });
-  if (error) throw error;
+  await invokeInstallation({ action: "daily", ...installation, enabled, time });
 }
 
 export async function showTestWebNotification() {
   if (!webPushAvailable()) throw Error("WEB_PUSH_UNAVAILABLE");
-  const permission = await Notification.requestPermission();
-  if (permission !== "granted") throw Error("PERMISSION_DENIED");
-  const registration = await navigator.serviceWorker.ready;
+  await webPermission();
+  const registration = await readyWorker();
   await registration.showNotification("Honzíkova moudra", {
     body: "Testovací upozornění funguje.",
     icon: "/icon-192.png",

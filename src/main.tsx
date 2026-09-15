@@ -1265,7 +1265,13 @@ function Settings({
           value={time}
           disabled={demo || busy !== null}
           aria-busy={busy === "daily"}
-          onChange={(e) => void updateDaily(daily, e.target.value)}
+          onChange={(e) => setTime(e.target.value)}
+          onBlur={(e) => {
+            const value = e.target.value;
+            if (value && value !== (localStorage.getItem("hm-time") || "08:00")) {
+              void updateDaily(daily, value);
+            }
+          }}
         />
       </label>
       <label className="switch-row">
@@ -1540,6 +1546,6 @@ createRoot(document.getElementById("root")!).render(
   </HashRouter>,
 );
 if ("serviceWorker" in navigator && !native)
-  window.addEventListener("load", () =>
-    navigator.serviceWorker.register("/sw.js").catch(() => {}),
+  void navigator.serviceWorker.register("/sw.js").catch((error) =>
+    console.warn("Service worker registration failed", error),
   );

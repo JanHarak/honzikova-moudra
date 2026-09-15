@@ -95,7 +95,9 @@ export function errorMessage(e: unknown) {
       ? String(e.message)
       : String(e);
   const known: Record<string, string> = {
-    WEB_PUSH_UNAVAILABLE: "Webová upozornění nejsou v tomto prohlížeči dostupná.",
+    WEB_PUSH_UNAVAILABLE: "Webová upozornění nejsou dostupná. Na iPhonu vyžadují iOS 16.4 nebo novější a aplikaci otevřenou z ikony na ploše.",
+    WEB_PUSH_TIMEOUT: "Nastavení upozornění trvá příliš dlouho. Zkontroluj připojení a zkus to znovu.",
+    SERVICE_WORKER_TIMEOUT: "Aplikace není připravená na upozornění. Zavři ji, otevři znovu z plochy a zkus to znovu.",
     PERMISSION_DENIED: "Oznámení nebyla povolena. Povol je v nastavení prohlížeče.",
     BACKEND_REQUIRED: "Upozornění vyžadují připojení k serveru.",
     EMAIL_REQUIRED: "Nejdřív ověř svůj e-mail.",
