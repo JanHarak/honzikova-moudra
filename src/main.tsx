@@ -641,7 +641,7 @@ function Home({ dailyOnly = false }: { dailyOnly?: boolean }) {
   const current = quotes[index];
   return (
     <section className="home">
-      <h1>Dnešní dávka Honzíkovi moudrosti</h1>
+      <h1>Dnešní dávka Honzíkovy moudrosti</h1>
       <p className="subtitle">Krátká moudra pro delší úsměvy.</p>
       {offline && (
         <Message>Jsi offline. Zobrazujeme uložený veřejný obsah.</Message>
